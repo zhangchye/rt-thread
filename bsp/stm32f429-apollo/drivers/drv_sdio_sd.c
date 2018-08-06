@@ -21,7 +21,7 @@ rt_uint8_t SD_Init(void)
     SDCARD_Handler.Init.ClockPowerSave=SDIO_CLOCK_POWER_SAVE_DISABLE;    //空闲时不关闭时钟电源
     SDCARD_Handler.Init.BusWide=SDIO_BUS_WIDE_1B;                        //1位数据线
     SDCARD_Handler.Init.HardwareFlowControl=SDIO_HARDWARE_FLOW_CONTROL_DISABLE;//关闭硬件流控
-    SDCARD_Handler.Init.ClockDiv=SDIO_TRANSFER_CLK_DIV;            //SD传输时钟频率最大25MHZ
+    SDCARD_Handler.Init.ClockDiv=SDIO_INIT_CLK_DIV;                 //初始化时钟为400KHZ
     
     SD_Error=HAL_SD_Init(&SDCARD_Handler,&SDCardInfo);
     if(SD_Error!=SD_OK) return 1;
@@ -242,10 +242,10 @@ static rt_size_t rt_sdcard_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_
     {
         /* non-aligned. */
         uint32_t i;
-        rt_size_t sector_adr;
+        uint64_t sector_adr;
         uint8_t* copy_buffer;
 
-        sector_adr = pos*SECTOR_SIZE;
+        sector_adr = (uint64_t)pos*SECTOR_SIZE;
         copy_buffer = (uint8_t*)buffer;
 
         for(i=0; i<size; i++)
@@ -263,9 +263,9 @@ static rt_size_t rt_sdcard_read(rt_device_t dev, rt_off_t pos, void* buffer, rt_
     else
     {
         #if (SD_DMA_MODE==1) 
-        status=SD_ReadBlocks_DMA(buffer,pos*SECTOR_SIZE,size);//通过DMA写SD卡一个扇区
+        status=SD_ReadBlocks_DMA(buffer,(uint64_t)pos*SECTOR_SIZE,size);//通过DMA写SD卡一个扇区
         #else
-        SD_ReadBlocks(buffer,pos*SECTOR_SIZE,size);
+        SD_ReadBlocks(buffer,(uint64_t)pos*SECTOR_SIZE,size);
         #endif
     }
 
@@ -286,10 +286,10 @@ static rt_size_t rt_sdcard_write (rt_device_t dev, rt_off_t pos, const void* buf
     {
         /* non-aligned. */
         uint32_t i;
-        rt_size_t sector_adr;
+        uint64_t sector_adr;
         uint8_t* copy_buffer;
 
-        sector_adr = pos*SECTOR_SIZE;
+        sector_adr = (uint64_t)pos*SECTOR_SIZE;
         copy_buffer = (uint8_t*)buffer;
 
         for(i=0; i<size; i++)
@@ -308,9 +308,9 @@ static rt_size_t rt_sdcard_write (rt_device_t dev, rt_off_t pos, const void* buf
     else
     {
         #if (SD_DMA_MODE==1)   
-        status=SD_WriteBlocks_DMA((uint32_t*)buffer,pos*SECTOR_SIZE,size);
+        status=SD_WriteBlocks_DMA((uint32_t*)buffer,(uint64_t)pos*SECTOR_SIZE,size);
         #else
-        status=SD_WriteBlocks((uint32_t*)buffer,pos*SECTOR_SIZE,size);
+        status=SD_WriteBlocks((uint32_t*)buffer,(uint64_t)pos*SECTOR_SIZE,size);
         #endif
     }
 	// }
@@ -320,7 +320,7 @@ static rt_size_t rt_sdcard_write (rt_device_t dev, rt_off_t pos, const void* buf
 	return 0;
 }
 
-static rt_err_t rt_sdcard_control(rt_device_t dev, rt_uint8_t cmd, void *args)
+static rt_err_t rt_sdcard_control(rt_device_t dev, int cmd, void *args)
 {
     RT_ASSERT(dev != RT_NULL);
 

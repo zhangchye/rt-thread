@@ -109,6 +109,7 @@ int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 
     /* detach the object from system object container */
     rt_object_detach(&(cond->sem.parent.parent));
+    cond->sem.parent.parent.type = RT_Object_Class_Semaphore;
 
     return 0;
 }
@@ -137,6 +138,9 @@ RTM_EXPORT(pthread_cond_destroy);
 int pthread_cond_broadcast(pthread_cond_t *cond)
 {
     rt_err_t result;
+
+    if (cond == RT_NULL)
+        return EINVAL;
     if (cond->attr == -1)
         pthread_cond_init(cond, RT_NULL);
 
@@ -173,6 +177,8 @@ int pthread_cond_signal(pthread_cond_t *cond)
 {
     rt_err_t result;
 
+    if (cond == RT_NULL)
+        return EINVAL;
     if (cond->attr == -1)
         pthread_cond_init(cond, RT_NULL);
 
